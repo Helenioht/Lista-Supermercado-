@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lista de Compras</title>
+    <style>
+        :root {
+            --primary: #10b981;
+            --primary-hover: #059669;
+            --warning: #f59e0b;
+            --warning-hover: #d97706;
+            --danger: #ef4444;
+            --danger-hover: #dc2626;
+            --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            --card-bg: #ffffff;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-size: 14px;
+            background: var(--bg-gradient);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 16px 8px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 540px;
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        header h1 {
+            font-size: 1.25rem;
+            font-weight: 700;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: 2fr 1.1fr 1.2fr auto;
+            gap: 8px;
+            margin-bottom: 16px;
+            background: #f8fafc;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+
+        @media (max-width: 480px) {
+            .form-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+            .form-grid input[type="text"] {
+                grid-column: span 2;
+            }
+            .form-actions {
+                grid-column: span 2;
+                display: flex;
+                gap: 8px;
+            }
+            .form-actions button {
+                flex: 1;
+            }
+        }
+
+        input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 14px;
+            outline: none;
+            background: #ffffff;
+        }
+
+        input:focus {
+            border-color: var(--primary);
+        }
+
+        .table-container {
+            overflow-x: auto;
+            margin-bottom: 16px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 10px 6px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+            vertical-align: middle;
+        }
+
+        th {
+            color: var(--text-muted);
+            text-transform: uppercase;
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        th.num, td.num {
+            text-align: right;
+        }
+
+        th.actions, td.actions {
+            text-align: center;
+            width: 70px;
+            white-space: nowrap;
+        }
+
+        .total-row {
+            font-weight: 700;
+            background-color: #f8fafc;
+        }
+
+        .total-row td {
+            border-bottom: none;
+            font-size: 1rem;
+        }
+
+        #total-val {
+            color: var(--primary-hover);
+        }
+
+        button {
+            cursor: pointer;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            padding: 8px 12px;
+            transition: background-color 0.2s, transform 0.1s;
+        }
+
+        button:active {
+            transform: scale(0.97);
+        }
+
+        .btn-add {
+            background: var(--primary);
+            color: #ffffff;
+        }
+
+        .btn-add:hover {
+            background: var(--primary-hover);
+        }
+
+        .btn-cancel {
+            background: var(--text-muted);
+            color: #ffffff;
+        }
+
+        .btn-icon {
+            background: transparent;
+            color: var(--text-muted);
+            padding: 4px 6px;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .btn-icon.edit:hover {
+            background: #fef3c7;
+            color: var(--warning-hover);
+        }
+
+        .btn-icon.del:hover {
+            background: #fee2e2;
+            color: var(--danger);
+        }
+
+        .empty-state {
+            text-align: center;
+            color: var(--text-muted);
+            padding: 24px 0;
+            font-style: italic;
+        }
+
+        footer {
+            margin-top: 16px;
+            text-align: right;
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+    </style>
+</head>
+<body>
+
+<main class="container">
+    <header>
+        <h1>Lista de Compras</h1>
+    </header>
+
+    <form class="form-grid" id="item-form" onsubmit="event.preventDefault(); handleSubmit();">
+        <input type="text" id="desc" placeholder="Nome do item (ex: Arroz, Queijo)" required>
+        <input type="number" id="qty" placeholder="Qtd (ex: 1.5)" value="1" min="0.001" step="any" required>
+        <input type="number" id="price" placeholder="R$ (ex: 0.00)" min="0" step="0.01" required>
+        
+        <div class="form-actions">
+            <button type="submit" class="btn-add" id="btn-submit" aria-label="Salvar item">+</button>
+            <button type="button" class="btn-cancel" id="btn-cancel" onclick="cancelEdit()" style="display: none;">✕</button>
+        </div>
+    </form>
+
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Item</th>
+                    <th class="num">Qtd</th>
+                    <th class="num">Un.</th>
+                    <th class="num">Total</th>
+                    <th class="actions">Ações</th>
+                </tr>
+            </thead>
+            <tbody id="items-body"></tbody>
+            <tfoot>
+                <tr class="total-row">
+                    <td colspan="3">Total Geral</td>
+                    <td class="num" id="total-val">R$ 0,00</td>
+                    <td></td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+
+    <footer>by Helenio</footer>
+</main>
+
+<script>
+    const STORAGE_KEY = 'lista_compras_data_v2';
+    let items = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+    let editingId = null;
+
+    const currencyFormatter = new Intl.NumberFormat('pt-BR', {
+        style: 'currency',
+        currency: 'BRL'
+    });
+
+    const numberFormatter = new Intl.NumberFormat('pt-BR', {
+        maximumFractionDigits: 3
+    });
+
+    function saveAndRender() {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+        render();
+    }
+
+    function handleSubmit() {
+        const descInput = document.getElementById('desc');
+        const qtyInput = document.getElementById('qty');
+        const priceInput = document.getElementById('price');
+
+        const description = descInput.value.trim();
+        const quantity = parseFloat(qtyInput.value.replace(',', '.'));
+        const price = parseFloat(priceInput.value.replace(',', '.'));
+
+        // Validação: Permite preço 0 e frações de quantidade
+        if (!description || isNaN(quantity) || isNaN(price) || quantity <= 0 || price < 0) {
+            return;
+        }
+
+        if (editingId !== null) {
+            // Atualizar item existente
+            items = items.map(item => item.id === editingId ? {
+                ...item,
+                description,
+                quantity,
+                price
+            } : item);
+            editingId = null;
+        } else {
+            // Inserir novo item
+            items.push({
+                id: Date.now(),
+                description,
+                quantity,
+                price
+            });
+        }
+
+        saveAndRender();
+        resetForm();
+    }
+
+    function editItem(id) {
+        const item = items.find(i => i.id === id);
+        if (!item) return;
+
+        document.getElementById('desc').value = item.description;
+        document.getElementById('qty').value = item.quantity;
+        document.getElementById('price').value = item.price;
+
+        editingId = id;
+        
+        const submitBtn = document.getElementById('btn-submit');
+        submitBtn.textContent = '✓';
+        submitBtn.classList.remove('btn-add');
+        submitBtn.style.backgroundColor = 'var(--warning)';
+        submitBtn.style.color = '#ffffff';
+
+        document.getElementById('btn-cancel').style.display = 'inline-block';
+        document.getElementById('desc').focus();
+    }
+
+    function cancelEdit() {
+        editingId = null;
+        resetForm();
+    }
+
+    function removeItem(id) {
+        if (editingId === id) {
+            cancelEdit();
+        }
+        items = items.filter(item => item.id !== id);
+        saveAndRender();
+    }
+
+    function resetForm() {
+        document.getElementById('desc').value = '';
+        document.getElementById('price').value = '';
+        document.getElementById('qty').value = '1';
+
+        const submitBtn = document.getElementById('btn-submit');
+        submitBtn.textContent = '+';
+        submitBtn.style.backgroundColor = '';
+        submitBtn.classList.add('btn-add');
+
+        document.getElementById('btn-cancel').style.display = 'none';
+        document.getElementById('desc').focus();
+    }
+
+    function render() {
+        const tbody = document.getElementById('items-body');
+        tbody.innerHTML = '';
+
+        if (items.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="5" class="empty-state">Nenhum item adicionado.</td></tr>`;
+            document.getElementById('total-val').textContent = currencyFormatter.format(0);
+            return;
+        }
+
+        let totalGeral = 0;
+
+        items.forEach(item => {
+            const itemTotal = item.quantity * item.price;
+            totalGeral += itemTotal;
+
+            const tr = document.createElement('tr');
+
+            const tdDesc = document.createElement('td');
+            tdDesc.textContent = item.description;
+
+            const tdQty = document.createElement('td');
+            tdQty.className = 'num';
+            tdQty.textContent = numberFormatter.format(item.quantity);
+
+            const tdPrice = document.createElement('td');
+            tdPrice.className = 'num';
+            tdPrice.textContent = currencyFormatter.format(item.price);
+
+            const tdTotal = document.createElement('td');
+            tdTotal.className = 'num';
+            tdTotal.textContent = currencyFormatter.format(itemTotal);
+
+            const tdActions = document.createElement('td');
+            tdActions.className = 'actions';
+
+            // Botão Editar
+            const btnEdit = document.createElement('button');
+            btnEdit.className = 'btn-icon edit';
+            btnEdit.innerHTML = '✎';
+            btnEdit.title = 'Editar';
+            btnEdit.onclick = () => editItem(item.id);
+
+            // Botão Excluir
+            const btnDel = document.createElement('button');
+            btnDel.className = 'btn-icon del';
+            btnDel.innerHTML = '&times;';
+            btnDel.title = 'Excluir';
+            btnDel.onclick = () => removeItem(item.id);
+
+            tdActions.appendChild(btnEdit);
+            tdActions.appendChild(btnDel);
+
+            tr.appendChild(tdDesc);
+            tr.appendChild(tdQty);
+            tr.appendChild(tdPrice);
+            tr.appendChild(tdTotal);
+            tr.appendChild(tdActions);
+
+            tbody.appendChild(tr);
+        });
+
+        document.getElementById('total-val').textContent = currencyFormatter.format(totalGeral);
+    }
+
+    // Inicialização
+    render();
+</script>
+
+</body>
+</html>
